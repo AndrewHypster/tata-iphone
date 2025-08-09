@@ -1,6 +1,7 @@
 import formidable from "formidable";
 import fs from "fs";
 import fetch from "node-fetch";
+import FormData from "form-data";
 
 export const config = {
   api: {
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
           {
             method: "POST",
             body: formData,
+            headers: formData.getHeaders(),
           }
         );
 
