@@ -1,0 +1,8 @@
+{
+  "name": "telegram-photo-upload",
+  "version": "1.0.0",
+  "dependencies": {
+    "formidable": "^2.0.1",
+    "node-fetch": "^2.6.7"
+  }
+}
