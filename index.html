@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Завантаж фото в Telegram</title>
+</head>
+<body>
+  <h1>Вибери фото</h1>
+  <form id="uploadForm">
+    <input type="file" name="photos" accept="image/*" multiple required>
+    <button type="submit">Відправити</button>
+  </form>
+  <p id="status"></p>
+
+  <script>
+    document.getElementById("uploadForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      var status = document.getElementById("status");
+      status.textContent = "Завантаження...";
+      var formData = new FormData();
+      var files = e.target.photos.files;
+      for (var i = 0; i < files.length; i++) {
+        formData.append("photos", files[i]);
+      }
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/upload");
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          status.textContent = "Фото відправлені!";
+        } else {
+          status.textContent = "Помилка відправки.";
+        }
+      };
+      xhr.send(formData);
+    });
+  </script>
+</body>
+</html>
