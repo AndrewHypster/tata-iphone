@@ -8,36 +8,76 @@
       color: red;
       font-weight: bold;
     }
+    ul#fileList {
+      list-style: none;
+      padding: 0;
+    }
+    ul#fileList li {
+      margin: 5px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #ddd;
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+    ul#fileList button {
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
   </style>
 </head>
 <body>
   <h1>Вибери фото</h1>
   <form id="uploadForm">
-    <input type="file" name="photos" accept="image/*" multiple required>
+    <input type="file" id="photosInput" name="photos" accept="image/*" multiple required>
     <button type="submit">Відправити</button>
   </form>
   <p id="status"></p>
   <p id="volume"></p>
+  <ul id="fileList"></ul>
 
   <script>
-    const MAX_SIZE = 50 * 1024 * 1024; // 50 MB (можеш змінити)
-
+    const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
+    const inputEl = document.getElementById("photosInput");
     const formEl = document.getElementById("uploadForm");
     const statusEl = document.getElementById("status");
     const volumeEl = document.getElementById("volume");
-    const inputEl = formEl.photos;
+    const fileListEl = document.getElementById("fileList");
 
-    function updateVolume() {
-      let files = inputEl.files;
+    let selectedFiles = []; // масив вибраних файлів
+
+    function formatSize(size) {
+      return (size / (1024 * 1024)).toFixed(2) + " MB";
+    }
+
+    function updateFileList() {
+      fileListEl.innerHTML = "";
       let totalSize = 0;
 
-      for (let i = 0; i < files.length; i++) {
-        totalSize += files[i].size;
-      }
+      selectedFiles.forEach((file, index) => {
+        totalSize += file.size;
+
+        let li = document.createElement("li");
+        li.textContent = file.name + " (" + formatSize(file.size) + ")";
+
+        let btn = document.createElement("button");
+        btn.textContent = "❌";
+        btn.onclick = () => {
+          selectedFiles.splice(index, 1); // видаляємо файл
+          updateFileList();
+        };
+
+        li.appendChild(btn);
+        fileListEl.appendChild(li);
+      });
 
       let mbUsed = (totalSize / (1024 * 1024)).toFixed(2);
       let mbLimit = (MAX_SIZE / (1024 * 1024)).toFixed(0);
-
       volumeEl.textContent = `Вага: ${mbUsed} MB / ${mbLimit} MB`;
 
       if (totalSize > MAX_SIZE) {
@@ -47,34 +87,38 @@
       }
     }
 
-    inputEl.addEventListener("change", updateVolume);
+    inputEl.addEventListener("change", () => {
+      selectedFiles = Array.from(inputEl.files); // додаємо вибрані файли
+      updateFileList();
+    });
 
     formEl.addEventListener("submit", function(e) {
       e.preventDefault();
 
-      let files = inputEl.files;
-      let totalSize = 0;
-      for (let i = 0; i < files.length; i++) totalSize += files[i].size;
-
+      let totalSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
       if (totalSize > MAX_SIZE) {
         statusEl.textContent = "Файли перевищують дозволений розмір!";
         return;
       }
 
-      statusEl.textContent = "Завантаження...";
-
-      var formData = new FormData();
-      for (var i = 0; i < files.length; i++) {
-        formData.append("photos", files[i]);
+      if (selectedFiles.length === 0) {
+        statusEl.textContent = "Немає файлів для відправки!";
+        return;
       }
 
-      var xhr = new XMLHttpRequest();
+      statusEl.textContent = "Завантаження...";
+
+      let formData = new FormData();
+      selectedFiles.forEach(f => formData.append("photos", f));
+
+      let xhr = new XMLHttpRequest();
       xhr.open("POST", "https://tata-iphone.vercel.app/api/upload.js");
       xhr.onload = function() {
         if (xhr.status === 200) {
           statusEl.textContent = "Фото відправлені!";
-          inputEl.value = ""; // очищаємо вибір файлів
-          volumeEl.textContent = "";
+          selectedFiles = [];
+          inputEl.value = "";
+          updateFileList();
         } else {
           statusEl.textContent = "Помилка відправки.";
         }
