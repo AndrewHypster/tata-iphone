@@ -5,7 +5,7 @@ import FormData from "form-data";
 
 export const config = {
   api: {
-    bodyParser: false, // вимикаємо bodyParser, бо formidable сам парсить файли
+    bodyParser: false,
   },
 };
 
@@ -22,37 +22,28 @@ export default async function handler(req, res) {
       return res.status(500).send("Помилка обробки файлу");
     }
 
-    console.log("Received files:", files);
-
     const BOT_TOKEN = process.env.BOT_TOKEN;
     const CHAT_ID = process.env.CHAT_ID;
 
-    if (!BOT_TOKEN || !CHAT_ID) {
-      console.error("Missing BOT_TOKEN or CHAT_ID in env");
-      return res.status(500).send("Server config error");
-    }
-
     let photos = files.photos;
-    if (!photos) {
-      console.error("No photos field in files");
-      return res.status(400).send("No photos uploaded");
-    }
-
     if (!Array.isArray(photos)) photos = [photos];
 
     try {
       for (const photo of photos) {
+        // перевіряємо ліміт перед відправкою
+        const size = fs.statSync(photo.filepath).size;
+        if (size > 50 * 1024 * 1024) {
+          console.error(`Файл ${photo.originalFilename} > 50MB`);
+          continue; // пропускаємо надто великий файл
+        }
+
         const formData = new FormData();
         formData.append("chat_id", CHAT_ID);
+        formData.append("document", fs.createReadStream(photo.filepath), {
+          filename: photo.originalFilename,
+        });
 
-        // завжди відправляємо як документ
-        formData.append(
-          "document",
-          fs.createReadStream(photo.filepath),
-          { filename: photo.originalFilename } // правильна назва з розширенням
-        );
-
-        const telegramResponse = await fetch(
+        const response = await fetch(
           `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
           {
             method: "POST",
@@ -61,17 +52,15 @@ export default async function handler(req, res) {
           }
         );
 
-        const telegramData = await telegramResponse.json();
-        console.log("Telegram API response:", telegramData);
-
-        if (!telegramResponse.ok || !telegramData.ok) {
-          console.error("Telegram API error:", telegramData);
+        const data = await response.json();
+        if (!data.ok) {
+          console.error("Telegram error:", data);
         }
       }
 
       res.status(200).send("OK");
-    } catch (error) {
-      console.error("Send document error:", error);
+    } catch (e) {
+      console.error("Send error:", e);
       res.status(500).send("Помилка надсилання у Telegram");
     }
   });
