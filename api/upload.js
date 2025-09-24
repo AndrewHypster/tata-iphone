@@ -44,10 +44,11 @@ export default async function handler(req, res) {
       for (const photo of photos) {
         const formData = new FormData();
         formData.append("chat_id", CHAT_ID);
-        formData.append("photo", fs.createReadStream(photo.filepath));
+        // ❗ Заміна sendPhoto на sendDocument
+        formData.append("document", fs.createReadStream(photo.filepath));
 
         const telegramResponse = await fetch(
-          `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
+          `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
           {
             method: "POST",
             body: formData,
@@ -67,7 +68,7 @@ export default async function handler(req, res) {
 
       res.status(200).send("OK");
     } catch (error) {
-      console.error("Send photo error:", error);
+      console.error("Send document error:", error);
       res.status(500).send("Помилка надсилання у Telegram");
     }
   });
