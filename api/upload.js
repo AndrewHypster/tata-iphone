@@ -45,7 +45,8 @@ export default async function handler(req, res) {
         const formData = new FormData();
         formData.append("chat_id", CHAT_ID);
         // ❗ Заміна sendPhoto на sendDocument
-        formData.append("document", fs.createReadStream(photo.filepath));
+        formData.append("document", fs.createReadStream(photo.filepath),
+{filename: photo.originalFilename});
 
         const telegramResponse = await fetch(
           `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
