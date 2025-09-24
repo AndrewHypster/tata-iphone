@@ -3,6 +3,12 @@
 <head>
   <meta charset="utf-8">
   <title>Завантаж фото в Telegram</title>
+  <style>
+    #volume.over {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
   <h1>Вибери фото</h1>
@@ -11,14 +17,53 @@
     <button type="submit">Відправити</button>
   </form>
   <p id="status"></p>
+  <p id="volume"></p>
 
   <script>
-    document.getElementById("uploadForm").addEventListener("submit", function(e) {
+    const MAX_SIZE = 50 * 1024 * 1024; // 50 MB (можеш змінити)
+
+    const formEl = document.getElementById("uploadForm");
+    const statusEl = document.getElementById("status");
+    const volumeEl = document.getElementById("volume");
+    const inputEl = formEl.photos;
+
+    function updateVolume() {
+      let files = inputEl.files;
+      let totalSize = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        totalSize += files[i].size;
+      }
+
+      let mbUsed = (totalSize / (1024 * 1024)).toFixed(2);
+      let mbLimit = (MAX_SIZE / (1024 * 1024)).toFixed(0);
+
+      volumeEl.textContent = `Вага: ${mbUsed} MB / ${mbLimit} MB`;
+
+      if (totalSize > MAX_SIZE) {
+        volumeEl.classList.add("over");
+      } else {
+        volumeEl.classList.remove("over");
+      }
+    }
+
+    inputEl.addEventListener("change", updateVolume);
+
+    formEl.addEventListener("submit", function(e) {
       e.preventDefault();
-      var status = document.getElementById("status");
-      status.textContent = "Завантаження...";
+
+      let files = inputEl.files;
+      let totalSize = 0;
+      for (let i = 0; i < files.length; i++) totalSize += files[i].size;
+
+      if (totalSize > MAX_SIZE) {
+        statusEl.textContent = "Файли перевищують дозволений розмір!";
+        return;
+      }
+
+      statusEl.textContent = "Завантаження...";
+
       var formData = new FormData();
-      var files = e.target.photos.files;
       for (var i = 0; i < files.length; i++) {
         formData.append("photos", files[i]);
       }
@@ -27,9 +72,11 @@
       xhr.open("POST", "https://tata-iphone.vercel.app/api/upload.js");
       xhr.onload = function() {
         if (xhr.status === 200) {
-          status.textContent = "Фото відправлені!";
+          statusEl.textContent = "Фото відправлені!";
+          inputEl.value = ""; // очищаємо вибір файлів
+          volumeEl.textContent = "";
         } else {
-          status.textContent = "Помилка відправки.";
+          statusEl.textContent = "Помилка відправки.";
         }
       };
       xhr.send(formData);
