@@ -5,7 +5,7 @@ import FormData from "form-data";
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false, // вимикаємо bodyParser, бо formidable сам парсить файли
   },
 };
 
@@ -44,9 +44,13 @@ export default async function handler(req, res) {
       for (const photo of photos) {
         const formData = new FormData();
         formData.append("chat_id", CHAT_ID);
-        // ❗ Заміна sendPhoto на sendDocument
-        formData.append("document", fs.createReadStream(photo.filepath),
-{filename: photo.originalFilename});
+
+        // завжди відправляємо як документ
+        formData.append(
+          "document",
+          fs.createReadStream(photo.filepath),
+          { filename: photo.originalFilename } // правильна назва з розширенням
+        );
 
         const telegramResponse = await fetch(
           `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
@@ -61,9 +65,7 @@ export default async function handler(req, res) {
         console.log("Telegram API response:", telegramData);
 
         if (!telegramResponse.ok || !telegramData.ok) {
-          return res.status(500).send(
-            "Telegram API error: " + (telegramData.description || "Unknown error")
-          );
+          console.error("Telegram API error:", telegramData);
         }
       }
 
